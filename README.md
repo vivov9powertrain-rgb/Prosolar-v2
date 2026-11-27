@@ -57,7 +57,7 @@ host it yourself on render. com  ( choose webservice)
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │                  Stateless Express Proxy (server.ts)                   │
-│  - Solara Cookie Gate (solara_key HttpOnly authentication)             │
+│  - prosolar Cookie Gate (solara_key HttpOnly authentication)             │
 │  - Text-Only Catalog Filtering & Dynamic Capability Inspection         │
 │  - Self-Healing Parameter Retries & Instant Error-Based Failover       │
 │  - Long-Lived Stream Job Registry & Seamless Handoff at 250s           │
