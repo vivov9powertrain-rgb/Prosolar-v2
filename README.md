@@ -4,6 +4,8 @@ Solara is a production-grade, stateless, full-stack multi-provider AI chat platf
 
 Solara requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`.
 
+
+the current password is "password" 
 ---
 
 ## Table of Contents
