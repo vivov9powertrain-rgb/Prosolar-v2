@@ -54,7 +54,7 @@ export interface ChatMessage {
   thinkingMeta?: string;
   sources?: SourceItem[];
   webQuery?: string;
-  webLookup?: 'tavily' | 'skipped' | 'no-sources';
+  webLookup?: 'exa' | 'tavily' | 'skipped' | 'no-sources';
 }
 
 export interface ChatSession {
@@ -93,20 +93,35 @@ export interface ApiKeysStore {
   custom1: string;
   custom2: string;
   tavily: string;
+  exa: string;
 }
 
+export type SearchEngine = 'exa' | 'tavily';
 export type TavilyDepth = 'basic' | 'advanced' | 'fast' | 'ultra-fast';
 export type TavilyStrategy = 'always' | 'model';
+export type ExaSearchType = 'auto' | 'fast' | 'deep';
+export type ExaLivecrawlMode = 'fallback' | 'preferred';
 
 export interface TavilyConfig {
   enabled: boolean;
   strategy: TavilyStrategy;
   depth: TavilyDepth;
   results: number; // 1-10
+  maxTokens: number; // 300-25000
   instructions: string;
   allowSites: string;
   blockSites: string;
   maxCallsPerChat: number;
+}
+
+export interface ExaSearchConfig {
+  strategy: TavilyStrategy; // 'always' | 'model'
+  numResults: number; // 1-20
+  maxTokens: number; // 300-25000
+  type: ExaSearchType; // 'auto' | 'fast' | 'deep'
+  livecrawl: ExaLivecrawlMode; // 'fallback' | 'preferred'
+  maxCallsPerChat: number; // 1-25
+  instructions: string;
 }
 
 export interface UiSettings {
@@ -118,7 +133,9 @@ export interface UiSettings {
   maxTokens: number; // 500-100000
   streaming: boolean;
   textSizeLevel: number; // 1 | 2 | 3
+  searchEngine: SearchEngine;
   tavily: TavilyConfig;
+  exa: ExaSearchConfig;
 }
 
 export interface Settings {
