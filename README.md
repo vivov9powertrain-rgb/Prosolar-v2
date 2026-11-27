@@ -1,4 +1,3 @@
-
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Open Source](https://img.shields.io/badge/Open%20Source-Yes-green.svg)
 
@@ -51,7 +50,7 @@ use copy Public repo ( https://github.com/vivov9powertrain-rgb/Prosolar-v2.git )
 5. [Unified Thinking & Reasoning Engine](#unified-thinking--reasoning-engine)
 6. [Interactive Markdown, KaTeX & Code Execution](#interactive-markdown-katex--code-execution)
 7. [Multimodal Files & 25 MB Upload Pipeline](#multimodal-files--25-mb-upload-pipeline)
-8. [Tavily Web Search & Native Gemini URL Context](#tavily-web-search--native-gemini-url-context)
+8. [Web Search (Exa AI MCP & Tavily) & Native Gemini URL Context](#web-search-exa-ai-mcp--tavily--native-gemini-url-context)
 9. [Long-Stream Resilience & Overlap Resume Protocol](#long-stream-resilience--overlap-resume-protocol)
 10. [Text-to-Speech (Web Speech API)](#text-to-speech-web-speech-api)
 11. [Client-Side State & Storage Schema](#client-side-state--storage-schema)
@@ -231,22 +230,58 @@ Prosolar supports comprehensive multimodal input attachments:
 
 ---
 
-## Tavily Web Search & Native Gemini URL Context
+## Web Search (Exa AI MCP & Tavily) & Native Gemini URL Context
 
-### Tavily Web Search Proxy (`/api/search`)
+Prosolar features a unified pre-search engine supporting two interchangeable search providers—**Exa AI MCP** and **Tavily**—with a one-click engine switcher right in the composer toolbar and zero external tool-calling loops.
 
-- **Configurable Search Depth**: Choose between `basic`, `advanced`, `fast`, and `ultra-fast` modes.
-- **Flexible Execution Modes**:
-  - `Always`: Executes a search query on every user turn.
-  - `Model Decided`: Prompts the AI model to determine whether fresh internet data is required and generate optimal query keywords.
-- **Domain Controls**: Configure allowed and blocked domain lists to constrain search scope.
-- **Clickable Sources**: Search results generate interactive `[1]`, `[2]` citation badges in the chat response that link directly to referenced sources.
+### Supported Search Engines
+
+| Engine | Protocol & Endpoint | API Key Requirement | Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Exa AI MCP** | Model Context Protocol (`StreamableHTTPClientTransport`) via `https://mcp.exa.ai/mcp?tools=web_search_exa` | **Keyless by Default** (Optional custom key supported) | Semantic neural search, live webpage crawl (`livecrawl: fallback/preferred`), search types (`auto`, `fast`, `deep`), up to 20 results, cloud-safe IPv4 routing |
+| **Tavily** | Direct HTTPS REST API via `https://api.tavily.com/search` | Required (`tvly-...`) | Trusted / blocked domain lists, search depths (`basic`, `advanced`, `fast`, `ultra-fast`), up to 10 results |
+
+### Search Execution Strategies (Avoiding Double Model Usage)
+
+You can configure search behavior per engine to optimize latency and token costs:
+
+#### 1. "Always search (auto-fire)" (`strategy: 'always'`) — Single AI API Call
+- **How it works**: Prosolar takes your input prompt and immediately queries the selected search engine (**Exa AI MCP** or **Tavily**) *before* contacting the AI model.
+- **Single AI API Request**: Search results are collected, formatted into a clean grounding block (`[Web Search Results for "..." — cite inline as [1], [2] when used]`), and appended to the user message. Prosolar then makes **only a single request** to your AI model provider (`POST /api/chat/stream`).
+- **Cost & Latency Benefit**: This completely avoids sending a preliminary "Should I search?" prompt to the LLM. There is **zero double model calling** and **zero extra LLM token usage**.
+
+#### 2. "Let the model decide" (`strategy: 'model'`) — Conditional AI Intent Check
+- **How it works**: When you submit a prompt, Prosolar first sends a tiny, non-streaming query-planning request to your active model (`POST /api/chat` with `thinkingLevel: 'none'`, `maxTokens: 500`) asking for strict JSON:
+  ```json
+  {"search": false}  // OR
+  {"search": true, "query": "short standalone search query"}
+  ```
+- **If the model replies `{"search": false}`**: Prosolar skips web search completely and proceeds straight to answering the user prompt (1 model request total).
+- **If the model replies `{"search": true, "query": "..."}`**: Prosolar searches Exa or Tavily using the model's refined query, attaches the search excerpts, and then sends the full prompt to the model (2 model requests total).
+- **Custom Instructions**: Both engines allow custom search instructions (e.g. *"Only search for recent documentation or benchmarks"*) passed to guide the model's decision.
+
+### Configurable Max Results & Token Budgeting
+
+Both search engines enforce user-defined limits in the **Settings > Web Search** panel:
+- **Max Search Results**:
+  - Exa AI MCP: Configurable from **1 to 20** results (default: `5`).
+  - Tavily: Configurable from **1 to 10** results (default: `4`).
+- **Max Search Context Tokens (`300`–`25,000` tokens, default: `3000`)**:
+  - Translates to a hard total character budget of approximately `maxTokens * 4` characters (e.g. `3,000 tokens ≈ 12,000 characters`).
+  - Enforced dynamically using a **water-filling distribution algorithm** (`server.ts`): shorter snippets keep their full text without truncation, while any excess budget is fairly distributed across longer results so critical excerpts are never prematurely clipped.
+- **Calls per Conversation Cap (`1`–`25`, default: `5`)**: Prevents runaway API usage in prolonged chat sessions.
+
+### Exa AI MCP Architecture & Cloud Compatibility
+
+- **Keyless Capability**: By default, Exa AI MCP operates keylessly through the official `web_search_exa` MCP tool. Users can optionally provide their own Exa API key in Settings if desired.
+- **IPv4 Connection Forcing**: Many cloud container environments (including Cloud Run and various hosting providers) route outbound traffic over IPv6 subnets, which Exa's keyless tier rejects with HTTP 403. Prosolar's Express proxy automatically routes Exa MCP connections through an `undici` `Agent({ connect: { family: 4 } })` dispatcher, guaranteeing reliable IPv4 resolution on all hosts.
+- **One-Click Composer Switcher**: A segmented control (`Exa MCP` / `Tavily`) is positioned right next to the `Web Search` toggle in the composer bar, letting you switch between engines in a single click without opening the Settings modal.
 
 ### Native Gemini URL Context
 
 When interacting with Gemini models:
 - If a user prompt contains a public HTTP/HTTPS link, Prosolar automatically attaches `{ tools: [{ urlContext: {} }] }` to allow Gemini to inspect the webpage directly.
-- Private addresses (`localhost`, `127.0.0.1`, RFC 1918 subnets, `.local`, `.internal`) are automatically filtered out.
+- Private addresses (`localhost`, `127.0.0.1`, RFC 1918 subnets, `.local`, `.internal`) and YouTube URLs are automatically filtered out (YouTube is routed through Prosolar's audio-only multimodal pipeline instead).
 - If a model rejects the tool parameter, Prosolar automatically strips the tool and retries in the same execution leg.
 
 ---
@@ -291,13 +326,13 @@ All application state is saved under organized keys in browser `localStorage`:
 
 | Storage Key | Data Structure | Purpose |
 | :--- | :--- | :--- |
-| `prosolar_api_keys` | `Record<ProviderId, string>` | Stored API credentials for providers and Tavily. |
+| `prosolar_api_keys` | `Record<ProviderId | 'tavily' | 'exa', string>` | Stored API credentials for providers, Tavily, and optional Exa key. |
 | `prosolar_custom_providers`| `Record<'custom1' \| 'custom2', CustomProviderSlot>` | Custom OpenAI-compatible endpoints and credentials. |
 | `prosolar_cascades` | `Record<ProviderId, string[]>` | Ordered fallback model arrays for each provider. |
 | `prosolar_thinking_levels`| `Record<ProviderId, Mode>` | Reasoning depth preferences (`default`, `high`, etc.). |
 | `prosolar_capabilities` | `Record<ProviderId, Record<string, ModelCapability>>` | Cached provider metadata and runtime-learned capabilities. |
 | `prosolar_system_prompt` | `string` | Global system instructions applied across conversations. |
-| `prosolar_ui_settings` | `UiSettings` | Theme settings, text scale, max tokens, history depth, Tavily options. |
+| `prosolar_ui_settings` | `UiSettings` | Theme settings, text scale, max tokens, history depth, active `searchEngine`, Tavily & Exa configs. |
 | `prosolar_chat_history` | `ChatSession[]` (Max 10) | Recent chat sessions, message histories, and source citations. |
 | `prosolar_active_chat_id` | `string` | ID of the currently selected conversation. |
 
@@ -322,7 +357,9 @@ All application state is saved under organized keys in browser `localStorage`:
 - `POST /api/upload`
   Parses binary files up to 25 MB into base64 payload attachments.
 - `POST /api/search`
-  Stateless proxy executing Tavily web searches with domain filtering.
+  Stateless proxy executing Tavily web searches with domain filtering and token character budgeting.
+- `POST /api/search/exa`
+  Stateless MCP client proxy executing Exa AI MCP web searches via `web_search_exa` with IPv4 routing and token character budgeting.
 
 ### Server-Sent Event (SSE) Protocol
 
@@ -411,5 +448,3 @@ Prosolar is optimized for containerized environments (such as Google Cloud Run, 
 - The Express server serves both the API endpoints and pre-compiled client assets in `dist/`.
 - The connection handoff protocol automatically accommodates Cloud Run's 300-second maximum request timeout.
 - The password gate prevents unauthorized public traffic from consuming your upstream API quotas.
-```
-
