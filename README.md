@@ -10,6 +10,8 @@
 
 # Prosolar-v2 — Minimalist Stateless Multi-Provider AI Chat
 
+<img width="1857" height="955" alt="IMG_20261127_192252_500_2391255795762900878" src="https://github.com/user-attachments/assets/479d3e03-9fcb-4aa1-b8be-35c4aed868e9" />
+
 try for yourself at (https://prosolar-v2.onrender.com/) 
 
 note :its byok so u need ur own api keys , get a free one 
@@ -31,6 +33,12 @@ use copy Public repo ( https://github.com/vivov9powertrain-rgb/Prosolar-v2.git )
  npm run start
  
  NODE_ENV = production
+
+<img width="1857" height="955" alt="IMG_20261127_192413_766_6555871900740437391" src="https://github.com/user-attachments/assets/1519b148-4fea-404e-a9b5-ad181922ffe6" />
+<img width="1857" height="955" alt="IMG_20261127_192558_625_4314468277565324676" src="https://github.com/user-attachments/assets/d0134de8-e920-4960-8709-67b73eedff54" />
+<img width="1857" height="955" alt="IMG_20261127_192344_377_1188265854381900770" src="https://github.com/user-attachments/assets/26d3bb09-cecf-4447-a2e4-3d48bb77479f" />
+<img width="1857" height="955" alt="IMG_20261127_192704_466_603351729919068773" src="https://github.com/user-attachments/assets/6eb86051-2a83-4357-9af1-e193ba6e3f8b" />
+<img width="1857" height="955" alt="IMG_20261127_192736_726_125349621984739548" src="https://github.com/user-attachments/assets/c17dd58e-b0e7-483a-acca-572fa1671660" />
 
 ---
 
