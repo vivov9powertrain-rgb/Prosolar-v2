@@ -1,5 +1,10 @@
 # Solara — Minimalist Stateless Multi-Provider AI Chat
 
+try for yourself at (https://prosolar-v2.onrender.com/) 
+note :its byok so u need ur own api keys , get a free one 
+
+refer to (https://free-llm.com/free-api)
+
 Solara is a production-grade, stateless, full-stack multi-provider AI chat platform engineered with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and an **Express** proxy server (`server.ts`). 
 
 Solara requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`.
