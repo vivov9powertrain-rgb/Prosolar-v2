@@ -8,7 +8,7 @@ refer to (https://free-llm.com/free-api)
 
 prosolar is a stateless, full-stack multi-provider AI chat platform engineered with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and an **Express** proxy server (`server.ts`). 
 
-Prosolar requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`.
+Prosolar requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`. (code is right here to check ✔️. 
 
 the current password is "password" 
 
