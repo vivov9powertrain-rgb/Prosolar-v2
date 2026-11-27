@@ -14,6 +14,8 @@ the current password is "password"
 
 host it yourself on render. com  ( choose webservice) 
 
+use copy Public repo ( https://github.com/vivov9powertrain-rgb/Prosolar-v2.git )
+
  npm install && npm run build
  
  npm run start
