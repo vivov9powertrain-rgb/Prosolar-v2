@@ -6,6 +6,12 @@ Solara requires **zero databases, zero server-side user tracking, and zero cloud
 
 
 the current password is "password" 
+
+
+host it yourself on render. com 
+ npm install && npm run build
+ npm run start
+ NODE_ENV = production
 ---
 
 ## Table of Contents
