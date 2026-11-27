@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+coverage/
+data/
+.git/
+.env*
+!.env.example
+*.log
+*.study_state.json
+continuous-study-state.json
+.DS_Store

@@ -1,0 +1,8 @@
+{
+  "name": "Solara — Multi-Provider AI Chat",
+  "description": "Minimalist full-stack multi-provider AI chat supporting Gemini AI Studio, Groq, OpenRouter, NVIDIA NIM, Z.AI, custom OpenAI-compatible endpoints, thinking levels, and Tavily web search.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

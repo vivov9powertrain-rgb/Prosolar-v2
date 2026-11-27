@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #000000;
+    color: #f4f4f5;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom minimal scrollbar for pure dark mode */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Prose styling for clean dark-mode responses */
+.study-prose,
+.study-prose-level-1 {
+  font-size: 1.04rem;
+  line-height: 1.74;
+  color: var(--sol-text, #f4f4f5);
+}
+
+/* Level 2: Large (+15%) */
+.study-prose-level-2 {
+  font-size: 1.18rem;
+  line-height: 1.80;
+}
+.study-prose-level-2 h1 {
+  font-size: 1.62rem;
+}
+.study-prose-level-2 h2 {
+  font-size: 1.40rem;
+}
+.study-prose-level-2 h3 {
+  font-size: 1.25rem;
+}
+.study-prose-level-2 .katex {
+  font-size: 1.14em;
+}
+
+/* Level 3: Extra Large (+30%) */
+.study-prose-level-3 {
+  font-size: 1.32rem;
+  line-height: 1.86;
+}
+.study-prose-level-3 h1 {
+  font-size: 1.80rem;
+}
+.study-prose-level-3 h2 {
+  font-size: 1.55rem;
+}
+.study-prose-level-3 h3 {
+  font-size: 1.38rem;
+}
+.study-prose-level-3 .katex {
+  font-size: 1.22em;
+}
+
+.study-prose h1 {
+  font-size: 1.48rem;
+  font-weight: 700;
+  color: #fafafa;
+  margin-top: 1.35rem;
+  margin-bottom: 0.7rem;
+  border-bottom: 1px solid #27272a;
+  padding-bottom: 0.4rem;
+}
+
+.study-prose h2 {
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-top: 1.25rem;
+  margin-bottom: 0.55rem;
+}
+
+.study-prose h3 {
+  font-size: 1.14rem;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-top: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+
+.study-prose p {
+  margin-bottom: 0.85rem;
+}
+
+.study-prose ul {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.study-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.study-prose li {
+  margin-bottom: 0.35rem;
+}
+
+.study-prose blockquote {
+  border-left: 3px solid #71717a;
+  background: #09090b;
+  padding: 0.6rem 0.95rem;
+  border-radius: 0 0.375rem 0.375rem 0;
+  margin: 0.85rem 0;
+  color: #e4e4e7;
+  font-style: normal;
+  font-size: 1.02rem;
+}
+
+.study-prose code {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: #18181b;
+  color: #38bdf8;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+.study-prose pre {
+  background-color: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  margin: 0.85rem 0;
+}
+
+.study-prose pre code {
+  background: transparent;
+  color: #f4f4f5;
+  padding: 0;
+  font-size: 0.92rem;
+}
+
+.study-prose strong {
+  color: #fef08a;
+  font-weight: 600;
+}
+
+.study-prose hr {
+  border: 0;
+  border-top: 1px solid #27272a;
+  margin: 1.15rem 0;
+}
+
+.study-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.9rem 0;
+  font-size: 0.92rem;
+}
+
+.study-prose th,
+.study-prose td {
+  border: 1px solid #27272a;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.study-prose th {
+  background-color: #18181b;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+/* KaTeX LaTeX Math Formulas in Dark Mode */
+.katex {
+  font-size: 1.08em;
+  color: #7dd3fc;
+  text-rendering: auto;
+}
+
+.katex-display {
+  margin: 0.4rem 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.katex-display-wrapper {
+  background: rgba(9, 9, 11, 0.85);
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
+  margin: 0.75rem 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.katex-inline-wrapper {
+  display: inline-block;
+  padding: 0 0.15rem;
+  vertical-align: -0.05em;
+}
+
+/* Slider Input Overrides */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--sol-accent, #22d3ee);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.35);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #ffffff;
+}
