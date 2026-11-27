@@ -1,3 +1,12 @@
+
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Open Source](https://img.shields.io/badge/Open%20Source-Yes-green.svg)
+![BYOK](https://img.shields.io/badge/BYOK-Supported-purple.svg)
+![AI](https://img.shields.io/badge/AI-Powered-blueviolet.svg)
+![Secure](https://img.shields.io/badge/Secure-Yes-green.svg)
+![Storage](https://img.shields.io/badge/Storage-Local-orange.svg)
+![Deployed](https://img.shields.io/badge/Render-Deployed-blue.svg)   
+
 # Prosolar-v2 — Minimalist Stateless Multi-Provider AI Chat
 
 try for yourself at (https://prosolar-v2.onrender.com/) 
