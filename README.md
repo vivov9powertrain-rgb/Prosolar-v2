@@ -8,11 +8,9 @@ refer to (https://free-llm.com/free-api)
 
 prosolar is a stateless, full-stack multi-provider AI chat platform engineered with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and an **Express** proxy server (`server.ts`). 
 
-Solara requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`.
-
+Prosolar requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`.
 
 the current password is "password" 
-
 
 host it yourself on render. com  ( choose webservice) 
 
@@ -21,7 +19,7 @@ host it yourself on render. com  ( choose webservice)
  npm run start
  
  NODE_ENV = production
- 
+
 ---
 
 ## Table of Contents
@@ -57,7 +55,7 @@ host it yourself on render. com  ( choose webservice)
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │                  Stateless Express Proxy (server.ts)                   │
-│  - prosolar Cookie Gate (solara_key HttpOnly authentication)             │
+│  - prosolar Cookie Gate (prosolar_key HttpOnly authentication)           │
 │  - Text-Only Catalog Filtering & Dynamic Capability Inspection         │
 │  - Self-Healing Parameter Retries & Instant Error-Based Failover       │
 │  - Long-Lived Stream Job Registry & Seamless Handoff at 250s           │
@@ -79,9 +77,9 @@ host it yourself on render. com  ( choose webservice)
 
 ## Security & Access Control (Password Gate)
 
-Solara includes an integrated **Password Gate** at the network middleware layer to safeguard instances deployed to public URLs or container runtimes:
+Prosolar includes an integrated **Password Gate** at the network middleware layer to safeguard instances deployed to public URLs or container runtimes:
 
-- **Cookie-Based Session**: Successful authentication injects a secure, 7-day `solara_key` `HttpOnly` cookie with `SameSite=None; Secure; Partitioned` attributes (on HTTPS) or `SameSite=Lax` (on HTTP).
+- **Cookie-Based Session**: Successful authentication injects a secure, 7-day `prosolar_key` `HttpOnly` cookie with `SameSite=None; Secure; Partitioned` attributes (on HTTPS) or `SameSite=Lax` (on HTTP).
 - **API Guarding**: Any `/api/*` request without a valid cookie instantly returns HTTP `401 Unauthorized` with `{ "requiresPassword": true }`.
 - **Minimal Standalone Unlock UI**: Visitors without the cookie receive an inlined, lightweight authentication prompt with zero external asset dependencies.
 - **Password Rotation**: Configurable directly in `server.ts` (`PW` and matching `KEY`).
@@ -111,23 +109,23 @@ Each provider features an independent model cascade managed in `CascadeEditor.ts
 
 ### Strict Two-Tier Error Triage & Failover
 
-When Solara executes a prompt, it applies intelligent error categorization:
+When Prosolar executes a prompt, it applies intelligent error categorization:
 
 1. **Immediate Failover (Zero Retries Wasted)**:
    - Triggered on: HTTP `401` (Unauthorized), `402` (Payment Required), `403` (Forbidden), `404` (Model Not Found), `429` (Rate Limited), `5xx` (Upstream Outage), quota exhaustion, or empty completion responses.
-   - Action: Solara instantly emits a `fallback_notice` SSE event and transfers execution to the next model in the cascade with 0ms delay.
+   - Action: Prosolar instantly emits a `fallback_notice` SSE event and transfers execution to the next model in the cascade with 0ms delay.
 2. **Self-Healing In-Place Retries (HTTP 400 / 422)**:
    - Triggered on parameter rejections: unsupported `thinkingConfig`, disallowed `systemInstruction`, rejected tools, unrecognized `reasoning_effort`, or temperature conflicts.
-   - Action: Solara automatically adjusts the parameters (e.g., stripping the thinking configuration, folding the system prompt into a user message, or stepping down video layers) and retries on the **same model** before attempting cascade failover.
+   - Action: Prosolar automatically adjusts the parameters (e.g., stripping the thinking configuration, folding the system prompt into a user message, or stepping down video layers) and retries on the **same model** before attempting cascade failover.
 
 ---
 
 ## Audio-Only YouTube Understanding (Gemini)
 
-Solara includes specialized, cost-effective YouTube audio comprehension for Gemini models:
+Prosolar includes specialized, cost-effective YouTube audio comprehension for Gemini models:
 
 - **Audio Layer Isolation (`contentLayers: ['AUDIO']`)**:
-  When a YouTube URL is provided in the prompt, Solara attaches the video part using `{ fileData: { fileUri }, videoMetadata: { contentLayers: ['AUDIO'] } }`.
+  When a YouTube URL is provided in the prompt, Prosolar attaches the video part using `{ fileData: { fileUri }, videoMetadata: { contentLayers: ['AUDIO'] } }`.
 - **Token Efficiency**:
   Extracting only the audio track consumes **~19,200 tokens** for a 10-minute video, compared to **~180,000 tokens** when sampling full video frames. This allows long videos to process comfortably within Free Tier Rate Limits (TPM).
 - **Supported URL Formats**:
@@ -137,13 +135,13 @@ Solara includes specialized, cost-effective YouTube audio comprehension for Gemi
 - **Latest-Turn Only**:
   Attachments are injected strictly for the latest user message, preventing prior turns from repeatedly consuming video quotas on follow-up questions.
 - **Multi-Stage Self-Healing**:
-  If a model or region rejects the audio content layer, Solara automatically steps down through `audio` → `low_res` → `plain` → `none` before failing over.
+  If a model or region rejects the audio content layer, Prosolar automatically steps down through `audio` → `low_res` → `plain` → `none` before failing over.
 
 ---
 
 ## Unified Thinking & Reasoning Engine
 
-Solara features a unified client and server reasoning adapter (`src/lib/reasoning.ts`) supporting 9 distinct modes:
+Prosolar features a unified client and server reasoning adapter (`src/lib/reasoning.ts`) supporting 9 distinct modes:
 
 ```
 Default ──► None ──► Minimal ──► Low ──► Medium ──► High ──► XHigh ──► Max ──► On
@@ -161,7 +159,7 @@ Default ──► None ──► Minimal ──► Low ──► Medium ──�
 
 ### Runtime Capability Learning
 
-When a model successfully responds after a parameter adjustment (such as down-stepping thinking levels or folding system instructions), Solara emits a `learned_capability` SSE event. This learned behavior is stored in the browser's `model_capabilities` cache, ensuring subsequent requests execute with optimal configurations on the first attempt.
+When a model successfully responds after a parameter adjustment (such as down-stepping thinking levels or folding system instructions), Prosolar emits a `learned_capability` SSE event. This learned behavior is stored in the browser's `model_capabilities` cache, ensuring subsequent requests execute with optimal configurations on the first attempt.
 
 ---
 
@@ -200,7 +198,7 @@ Every rendered code block features a dedicated header toolbar:
 
 ## Multimodal Files & 25 MB Upload Pipeline
 
-Solara supports comprehensive multimodal input attachments:
+Prosolar supports comprehensive multimodal input attachments:
 
 - **Generous Limits**: Upload up to 12 files per message, up to **25 MB** each.
 - **Flexible Ingestion**: Paste images from your clipboard, drag and drop files onto the chat interface, or use the file picker.
@@ -227,15 +225,15 @@ Solara supports comprehensive multimodal input attachments:
 ### Native Gemini URL Context
 
 When interacting with Gemini models:
-- If a user prompt contains a public HTTP/HTTPS link, Solara automatically attaches `{ tools: [{ urlContext: {} }] }` to allow Gemini to inspect the webpage directly.
+- If a user prompt contains a public HTTP/HTTPS link, Prosolar automatically attaches `{ tools: [{ urlContext: {} }] }` to allow Gemini to inspect the webpage directly.
 - Private addresses (`localhost`, `127.0.0.1`, RFC 1918 subnets, `.local`, `.internal`) are automatically filtered out.
-- If a model rejects the tool parameter, Solara automatically strips the tool and retries in the same execution leg.
+- If a model rejects the tool parameter, Prosolar automatically strips the tool and retries in the same execution leg.
 
 ---
 
 ## Long-Stream Resilience & Overlap Resume Protocol
 
-To prevent Cloud Run, reverse proxy, or mobile network disconnects from severing long-running reasoning sessions, Solara implements an **Overlapping SSE Resumption Protocol**:
+To prevent Cloud Run, reverse proxy, or mobile network disconnects from severing long-running reasoning sessions, Prosolar implements an **Overlapping SSE Resumption Protocol**:
 
 ```
 Leg 1 (0s - 250s)   ═══════════════════════════════════════► [Handoff Event] ──► (Closed at 280s)
@@ -259,7 +257,7 @@ Leg 2 (250s - 500s)                                    ════════�
 
 ## Text-to-Speech (Web Speech API)
 
-Solara includes an in-browser voice reader designed for technical content:
+Prosolar includes an in-browser voice reader designed for technical content:
 
 - **Audio Sanitization (`speechSanitizer.ts`)**: Cleans LaTeX mathematical equations, markdown table formatting, code fences, and symbols into natural, readable English prose.
 - **Sentence Chunking**: Splits responses into natural conversational phrases to prevent browser audio buffer timeouts on long answers.
@@ -273,15 +271,15 @@ All application state is saved under organized keys in browser `localStorage`:
 
 | Storage Key | Data Structure | Purpose |
 | :--- | :--- | :--- |
-| `solara_api_keys` | `Record<ProviderId, string>` | Stored API credentials for providers and Tavily. |
-| `solara_custom_providers`| `Record<'custom1' \| 'custom2', CustomProviderSlot>` | Custom OpenAI-compatible endpoints and credentials. |
-| `solara_cascades` | `Record<ProviderId, string[]>` | Ordered fallback model arrays for each provider. |
-| `solara_thinking_levels`| `Record<ProviderId, Mode>` | Reasoning depth preferences (`default`, `high`, etc.). |
-| `solara_capabilities` | `Record<ProviderId, Record<string, ModelCapability>>` | Cached provider metadata and runtime-learned capabilities. |
-| `solara_system_prompt` | `string` | Global system instructions applied across conversations. |
-| `solara_ui_settings` | `UiSettings` | Theme settings, text scale, max tokens, history depth, Tavily options. |
-| `solara_chat_history` | `ChatSession[]` (Max 10) | Recent chat sessions, message histories, and source citations. |
-| `solara_active_chat_id` | `string` | ID of the currently selected conversation. |
+| `prosolar_api_keys` | `Record<ProviderId, string>` | Stored API credentials for providers and Tavily. |
+| `prosolar_custom_providers`| `Record<'custom1' \| 'custom2', CustomProviderSlot>` | Custom OpenAI-compatible endpoints and credentials. |
+| `prosolar_cascades` | `Record<ProviderId, string[]>` | Ordered fallback model arrays for each provider. |
+| `prosolar_thinking_levels`| `Record<ProviderId, Mode>` | Reasoning depth preferences (`default`, `high`, etc.). |
+| `prosolar_capabilities` | `Record<ProviderId, Record<string, ModelCapability>>` | Cached provider metadata and runtime-learned capabilities. |
+| `prosolar_system_prompt` | `string` | Global system instructions applied across conversations. |
+| `prosolar_ui_settings` | `UiSettings` | Theme settings, text scale, max tokens, history depth, Tavily options. |
+| `prosolar_chat_history` | `ChatSession[]` (Max 10) | Recent chat sessions, message histories, and source citations. |
+| `prosolar_active_chat_id` | `string` | ID of the currently selected conversation. |
 
 ---
 
@@ -292,7 +290,7 @@ All application state is saved under organized keys in browser `localStorage`:
 - `GET /api/health`
   Returns server status, stateless configuration, and timeout limits.
 - `POST /api/unlock`
-  Validates instance access password and issues the `solara_key` session cookie.
+  Validates instance access password and issues the `prosolar_key` session cookie.
 - `POST /api/models`
   Queries provider catalogs, applies text-only filtering, and extracts capability metadata.
 - `POST /api/chat/stream`
@@ -334,7 +332,7 @@ All application state is saved under organized keys in browser `localStorage`:
 
 ```bash
 git clone <repository-url>
-cd solara
+cd prosolar
 npm install
 ```
 
@@ -389,7 +387,9 @@ npm start
 
 ### Container & Cloud Run Deployment
 
-Solara is optimized for containerized environments (such as Google Cloud Run, AWS App Runner, or Docker):
+Prosolar is optimized for containerized environments (such as Google Cloud Run, AWS App Runner, or Docker):
 - The Express server serves both the API endpoints and pre-compiled client assets in `dist/`.
 - The connection handoff protocol automatically accommodates Cloud Run's 300-second maximum request timeout.
 - The password gate prevents unauthorized public traffic from consuming your upstream API quotas.
+```
+
