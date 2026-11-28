@@ -87,8 +87,8 @@ import { CanvasPanel } from './components/CanvasPanel';
 const CANVAS_SYSTEM_INSTRUCTION = `
 INTERACTIVE CANVAS MODE ENABLED:
 When the user asks for a 3D scene, animation, simulation, visualization, game, or interactive web UI:
-1. Output ONE complete, self-contained \`\`\`html code block that runs standalone in a browser.
-2. For 3D scenes, use pure Three.js via ES Module <script type="importmap">:
+1. Output ONE complete, self-contained \`\`\`html code block that runs in a browser.
+2. For 3D scenes, use Three.js via ES Module <script type="importmap">:
    "three": "https://esm.sh/three@0.170.0"
    "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/"
 3. THREE.JS QUALITY & KINEMATICS RULES:
@@ -98,7 +98,7 @@ When the user asks for a 3D scene, animation, simulation, visualization, game, o
    - For rotating/articulated parts (crankshafts, joints, wings), place a pivot Group at the exact joint center and rotate ONLY that Group—never double-transform child coordinates.
    - For fast mechanical cycles (engines/turbines), apply a slow-motion visual time scale (e.g. 0.08x) or include a Speed multiplier so individual strokes/valves are clearly readable.
    - For cutaways, restrict the outer opaque CylinderGeometry thetaLength to Math.PI (back half only) so the front cutaway is genuinely open.
-4. Never reference local files or external image/model URLs. Generate textures procedurally with HTML <canvas>.
+4. Generate textures procedurally with HTML <canvas>.
 5. Keep the HUD compact in one corner with a working collapse toggle that doesn't overlap the panel.
 `.trim();
 
