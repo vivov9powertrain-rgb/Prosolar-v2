@@ -10,6 +10,7 @@ interface MarkdownRendererProps {
   content: string;
   textSizeLevel?: number;
   sources?: SourceItem[];
+  onOpenCanvas?: (payload: { code: string; language: string }) => void;
 }
 
 interface MathItem {
@@ -105,6 +106,7 @@ const JSON_CHECK_ICON_HTML = renderToStaticMarkup(
   <CheckCircle2 size={11} strokeWidth={2.2} aria-hidden="true" />
 );
 const downloadResetTimers = new WeakMap<HTMLButtonElement, number>();
+const CANVAS_LANGUAGES = new Set(['html', 'htm', 'svg', 'jsx', 'tsx', 'react']);
 
 interface OneCompilerTarget {
   slug: string;
@@ -251,7 +253,12 @@ function renderMathWithHealing(rawMath: string, isBlock: boolean): string {
   }
 }
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, textSizeLevel = 1, sources }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+  content,
+  textSizeLevel = 1,
+  sources,
+  onOpenCanvas,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const ocIframeRef = useRef<HTMLIFrameElement | null>(null);
   const ocRetryTimersRef = useRef<number[]>([]);
@@ -372,6 +379,20 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, tex
   const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement | null;
 
+    const canvasBtn = target?.closest('button[data-open-canvas="1"]') as HTMLButtonElement | null;
+    if (canvasBtn) {
+      const wrapper = canvasBtn.closest('.sol-code-block');
+      const codeEl = wrapper?.querySelector('pre code');
+      if (!codeEl) return;
+      const rawCode = codeEl.textContent || '';
+      const lang = (canvasBtn.getAttribute('data-lang') || 'html')
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)[0];
+      onOpenCanvas?.({ code: rawCode, language: lang });
+      return;
+    }
+
     const runBtn = target?.closest('button[data-run-code="1"]') as HTMLButtonElement | null;
     if (runBtn) {
       const wrapper = runBtn.closest('.sol-code-block');
@@ -466,7 +487,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, tex
         }, 1600);
       }
     }).catch(() => {});
-  }, []);
+  }, [onOpenCanvas]);
 
   const htmlContent = useMemo(() => {
     if (!content) return '';
@@ -719,6 +740,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, tex
           const safeLangAttr = escapeHtml(rawLang);
           const isJson = normalizedLang === 'json' || normalizedLang === 'jsonc';
           const isRunnable = !isJson && getOneCompilerTarget(rawLang, '') !== null;
+          const isCanvasable = CANVAS_LANGUAGES.has(normalizedLang);
+
+          const canvasBtnHtml = isCanvasable
+            ? `<button type="button" data-open-canvas="1" data-lang="${safeLangAttr}" title="Preview in Interactive Canvas" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-900/50 hover:bg-cyan-800/70 border border-cyan-600/50 text-cyan-200 transition-colors cursor-pointer"><span class="inline-flex items-center">${PLAY_ICON_HTML}</span><span>Canvas</span></button>`
+            : '';
 
           const actionBtnHtml = isRunnable
             ? `<button type="button" data-run-code="1" data-lang="${safeLangAttr}" title="Run in OneCompiler" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-900/50 hover:bg-emerald-800/70 border border-emerald-700/50 text-emerald-300 transition-colors cursor-pointer"><span class="inline-flex items-center">${PLAY_ICON_HTML}</span><span>Run</span></button>`
@@ -728,7 +754,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, tex
 
           const jsonStatusHtml = isJson ? `<div data-json-status class="hidden"></div>` : '';
 
-          return `<div class="sol-code-block my-3 rounded-xl border border-zinc-800 bg-[#09090b] overflow-hidden"><div class="flex items-center justify-between px-3 py-1.5 bg-zinc-900/80 border-b border-zinc-800 text-[11px] font-mono text-zinc-400"><span>${safeLang}</span><div class="flex items-center gap-1.5">${actionBtnHtml}<button type="button" data-download-code="1" data-lang="${safeLangAttr}" title="Download code" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors cursor-pointer"><span data-download-icon class="inline-flex items-center">${DOWNLOAD_ICON_HTML}</span><span data-download-label>Download</span></button><button type="button" data-copy-code="1" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors cursor-pointer"><span data-copy-label>Copy</span></button></div></div>${jsonStatusHtml}<pre class="!my-0 !border-0 !rounded-none"><code>${codeInner}</code></pre></div>`;
+          return `<div class="sol-code-block my-3 rounded-xl border border-zinc-800 bg-[#09090b] overflow-hidden"><div class="flex items-center justify-between px-3 py-1.5 bg-zinc-900/80 border-b border-zinc-800 text-[11px] font-mono text-zinc-400"><span>${safeLang}</span><div class="flex items-center gap-1.5">${canvasBtnHtml}${actionBtnHtml}<button type="button" data-download-code="1" data-lang="${safeLangAttr}" title="Download code" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors cursor-pointer"><span data-download-icon class="inline-flex items-center">${DOWNLOAD_ICON_HTML}</span><span data-download-label>Download</span></button><button type="button" data-copy-code="1" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors cursor-pointer"><span data-copy-label>Copy</span></button></div></div>${jsonStatusHtml}<pre class="!my-0 !border-0 !rounded-none"><code>${codeInner}</code></pre></div>`;
         }
       );
 

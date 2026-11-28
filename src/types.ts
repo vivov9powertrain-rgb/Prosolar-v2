@@ -55,6 +55,12 @@ export interface ChatMessage {
   sources?: SourceItem[];
   webQuery?: string;
   webLookup?: 'exa' | 'tavily' | 'skipped' | 'no-sources';
+  ttfsMs?: number;
+  elapsedMs?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  thoughtsTokens?: number;
+  tokensEstimated?: boolean;
 }
 
 export interface ChatSession {
@@ -133,6 +139,7 @@ export interface UiSettings {
   maxTokens: number; // 500-100000
   streaming: boolean;
   textSizeLevel: number; // 1 | 2 | 3
+  canvasMode?: boolean;
   searchEngine: SearchEngine;
   tavily: TavilyConfig;
   exa: ExaSearchConfig;

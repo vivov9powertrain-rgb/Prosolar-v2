@@ -82,6 +82,40 @@ import { SystemPromptEditor } from './components/SystemPromptEditor';
 import { ConnectionSettingsModal } from './components/TavilySettings';
 import { sanitizeForSpeech, splitIntoSpeechChunks } from './utils/speechSanitizer';
 import { extractZipForChat } from './lib/zipExtract';
+import { CanvasPanel } from './components/CanvasPanel';
+
+const CANVAS_SYSTEM_INSTRUCTION = `
+INTERACTIVE CANVAS MODE ENABLED:
+When the user asks for a 3D scene, animation, simulation, visualization, game, or interactive web UI:
+1. Output ONE complete, self-contained \`\`\`html code block that runs standalone in a browser.
+2. For 3D scenes, use pure Three.js via ES Module <script type="importmap">:
+   "three": "https://esm.sh/three@0.170.0"
+   "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/"
+3. THREE.JS QUALITY & KINEMATICS RULES:
+   - Always add environment reflections using PMREMGenerator + RoomEnvironment from 'three/addons/environments/RoomEnvironment.js' so metallic/glass materials shine realistically.
+   - Use ACESFilmicToneMapping and UnrealBloomPass (EffectComposer) subtly for sparks, glow, or sci-fi highlights.
+   - Rotate ground PlaneGeometry by -Math.PI / 2 on X, and keep the entire model above y = 0.
+   - For rotating/articulated parts (crankshafts, joints, wings), place a pivot Group at the exact joint center and rotate ONLY that Group—never double-transform child coordinates.
+   - For fast mechanical cycles (engines/turbines), apply a slow-motion visual time scale (e.g. 0.08x) or include a Speed multiplier so individual strokes/valves are clearly readable.
+   - For cutaways, restrict the outer opaque CylinderGeometry thetaLength to Math.PI (back half only) so the front cutaway is genuinely open.
+4. Never reference local files or external image/model URLs. Generate textures procedurally with HTML <canvas>.
+5. Keep the HUD compact in one corner with a working collapse toggle that doesn't overlap the panel.
+`.trim();
+
+function extractLatestCanvasArtifact(
+  markdown: string
+): { code: string; language: string } | null {
+  const regex = /```(html|htm|svg|jsx|tsx|react)\s*\n([\s\S]*?)```/gi;
+  let match: RegExpExecArray | null;
+  let last: { code: string; language: string } | null = null;
+  while ((match = regex.exec(markdown)) !== null) {
+    last = {
+      language: match[1].toLowerCase(),
+      code: match[2].trim(),
+    };
+  }
+  return last;
+}
 
 const ThoughtSection: React.FC<{ thought: string; isLive?: boolean }> = ({
   thought,
@@ -146,6 +180,58 @@ function stripMarkdownToPlainText(markdown: string): string {
     .trim();
 }
 
+function formatDurationShort(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '0.0s';
+  if (ms >= 60_000) {
+    const mins = Math.floor(ms / 60_000);
+    const secs = ((ms % 60_000) / 1000).toFixed(1);
+    return `${mins}m ${secs}s`;
+  }
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatTtfsShort(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '0.00s';
+  if (ms >= 60_000) return formatDurationShort(ms);
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function estimatePromptTokens(
+  effectiveSystemPrompt: string,
+  outgoingMessages: Array<{
+    role: string;
+    text: string;
+    attachments?: Array<{ data?: string; mimeType: string; size?: number }>;
+  }>,
+  historyLimit: number
+): number {
+  const limit =
+    typeof historyLimit === 'number' && historyLimit >= 5 && historyLimit <= 40
+      ? Math.round(historyLimit)
+      : 10;
+  const recent =
+    outgoingMessages.length > limit ? outgoingMessages.slice(-limit) : outgoingMessages;
+  let totalChars = effectiveSystemPrompt.trim().length;
+  let binaryAttachmentTokens = 0;
+
+  for (const m of recent) {
+    totalChars += (m.text || '').length + 12;
+    if (m.attachments && m.attachments.length > 0) {
+      for (const att of m.attachments) {
+        const mime = (att.mimeType || '').toLowerCase();
+        if (att.data && (mime.startsWith('text/') || mime === 'application/json')) {
+          totalChars += Math.floor(att.data.length * 0.75);
+        } else if (mime.startsWith('image/')) {
+          binaryAttachmentTokens += 258;
+        } else {
+          binaryAttachmentTokens += Math.min(4000, Math.max(64, Math.ceil((att.size || 0) / 16)));
+        }
+      }
+    }
+  }
+  return Math.max(1, Math.ceil(totalChars / 4) + binaryAttachmentTokens);
+}
+
 function deriveChatTitle(messages: ChatMessage[]): string {
   const firstUser = messages.find((m) => m.role === 'user' && m.text.trim());
   if (!firstUser) return 'New Chat';
@@ -187,6 +273,13 @@ export default function App() {
   const [isThinkingActive, setIsThinkingActive] = useState(false);
   const [activeModelUsed, setActiveModelUsed] = useState<string>('');
   const [activeThinkingMeta, setActiveThinkingMeta] = useState<string>('');
+  const [liveTelemetry, setLiveTelemetry] = useState<{
+    elapsedMs: number;
+    ttfsMs?: number;
+    inputTokens: number;
+    outputTokens: number;
+    thoughtsTokens?: number;
+  } | null>(null);
   const [statusBanner, setStatusBanner] = useState<string | null>(null);
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
   const [searchCallsUsed, setSearchCallsUsed] = useState<{ exa: number; tavily: number }>({
@@ -201,6 +294,10 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMiniPromptOpen, setIsMiniPromptOpen] = useState(false);
+  const [canvasArtifact, setCanvasArtifact] = useState<{
+    code: string;
+    language: string;
+  } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Message actions state
@@ -387,6 +484,7 @@ export default function App() {
     setSearchCallsUsed({ exa: 0, tavily: 0 });
     setStatusBanner(null);
     setFallbackNotice(null);
+    setCanvasArtifact(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
@@ -402,6 +500,7 @@ export default function App() {
     setSearchCallsUsed({ exa: 0, tavily: 0 });
     setStatusBanner(null);
     setFallbackNotice(null);
+    setCanvasArtifact(null);
   };
 
   const handleDeleteChat = (sessionId: string) => {
@@ -863,6 +962,44 @@ export default function App() {
     let searchSources: SourceItem[] = [];
     let webQuery: string | undefined;
     let webLookup: 'exa' | 'tavily' | 'skipped' | 'no-sources' | undefined;
+    let streamStartedAt = 0;
+    let ttfsBaseline = 0;
+    let firstTokenAt: number | null = null;
+    let estimatedInputTokens = 0;
+    let serverUsage: {
+      inputTokens?: number;
+      outputTokens?: number;
+      thoughtsTokens?: number;
+    } | undefined;
+    let telemetryTimer: ReturnType<typeof setInterval> | null = null;
+
+    const buildFinalTelemetry = () => {
+      const now = Date.now();
+      const elapsedMs = streamStartedAt > 0 ? Math.max(0, now - streamStartedAt) : undefined;
+      const ttfsMs =
+        firstTokenAt !== null && ttfsBaseline > 0
+          ? Math.max(0, firstTokenAt - ttfsBaseline)
+          : undefined;
+      const hasExactInput = typeof serverUsage?.inputTokens === 'number';
+      const hasExactOutput = typeof serverUsage?.outputTokens === 'number';
+      const outChars = accumulatedText.length + accumulatedThought.length;
+      const estOut = outChars > 0 ? Math.max(1, Math.ceil(outChars / 4)) : 0;
+      const thoughtsEst =
+        accumulatedThought.length > 0
+          ? Math.max(1, Math.ceil(accumulatedThought.length / 4))
+          : undefined;
+      return {
+        ttfsMs,
+        elapsedMs,
+        inputTokens: hasExactInput ? serverUsage!.inputTokens! : estimatedInputTokens,
+        outputTokens: hasExactOutput ? serverUsage!.outputTokens! : estOut,
+        thoughtsTokens:
+          typeof serverUsage?.thoughtsTokens === 'number'
+            ? serverUsage.thoughtsTokens
+            : thoughtsEst,
+        tokensEstimated: !(hasExactInput && hasExactOutput),
+      };
+    };
 
     try {
       // Optional web search lookup (Exa MCP or Tavily) before answering
@@ -902,6 +1039,16 @@ export default function App() {
         attachmentsToSend.filter((a) => Boolean(a.file)).map((a) => a.id)
       );
 
+      const effectiveSystemPrompt = uiSettings.canvasMode
+        ? [systemPrompt.trim(), CANVAS_SYSTEM_INSTRUCTION].filter(Boolean).join('\n\n')
+        : systemPrompt;
+
+      estimatedInputTokens = estimatePromptTokens(
+        effectiveSystemPrompt,
+        outgoingMessages,
+        uiSettings.historyLimit
+      );
+
       const payloadObj = {
         requestId,
         providerId: activeProvider,
@@ -909,7 +1056,7 @@ export default function App() {
         apiKey: activeApiKey,
         cascade: activeCascade,
         capabilities: activeProviderCaps,
-        systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         thinkingLevel: activeThinkingMode,
         historyLimit: uiSettings.historyLimit,
         maxTokens: uiSettings.maxTokens,
@@ -946,6 +1093,25 @@ export default function App() {
           signal: combinedSignal,
         };
       }
+
+      streamStartedAt = Date.now();
+      ttfsBaseline = streamStartedAt;
+      const syncLiveTelemetry = () => {
+        const now = Date.now();
+        const outChars = accumulatedText.length + accumulatedThought.length;
+        setLiveTelemetry({
+          elapsedMs: Math.max(0, now - streamStartedAt),
+          ttfsMs: firstTokenAt !== null ? Math.max(0, firstTokenAt - ttfsBaseline) : undefined,
+          inputTokens: estimatedInputTokens,
+          outputTokens: outChars > 0 ? Math.max(1, Math.ceil(outChars / 4)) : 0,
+          thoughtsTokens:
+            accumulatedThought.length > 0
+              ? Math.max(1, Math.ceil(accumulatedThought.length / 4))
+              : undefined,
+        });
+      };
+      syncLiveTelemetry();
+      telemetryTimer = setInterval(syncLiveTelemetry, 100);
 
       const response = await fetch('/api/chat/stream', fetchInit);
       if (!response.ok) {
@@ -1096,6 +1262,9 @@ export default function App() {
                 }
               } else if (evt.type === 'thought') {
                 promoteTimeoutToActive();
+                if (firstTokenAt === null) {
+                  firstTokenAt = Date.now();
+                }
                 reconnectAttempts = 0;
                 if (!thinkingUiActive) {
                   thinkingUiActive = true;
@@ -1106,6 +1275,9 @@ export default function App() {
                 scheduleStreamingUiFlush();
               } else if (evt.type === 'chunk') {
                 promoteTimeoutToActive();
+                if (firstTokenAt === null) {
+                  firstTokenAt = Date.now();
+                }
                 reconnectAttempts = 0;
                 if (thinkingUiActive) {
                   thinkingUiActive = false;
@@ -1124,6 +1296,9 @@ export default function App() {
                 accumulatedText = '';
                 accumulatedThought = '';
                 resolvedThinkingMeta = '';
+                firstTokenAt = null;
+                ttfsBaseline = Date.now();
+                serverUsage = undefined;
                 thinkingUiActive = false;
                 setIsThinkingActive(false);
                 setActiveStreamingText('');
@@ -1137,6 +1312,9 @@ export default function App() {
               } else if (evt.type === 'done') {
                 flushStreamingUi();
                 terminalEventSeen = true;
+                if (evt.usage && typeof evt.usage === 'object') {
+                  serverUsage = evt.usage;
+                }
                 if (evt.modelUsed) {
                   resolvedModel = evt.modelUsed;
                   setActiveModelUsed(resolvedModel);
@@ -1247,6 +1425,7 @@ export default function App() {
         throw new Error('Empty response received from model.');
       }
 
+      const finalTelemetry = buildFinalTelemetry();
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: 'model',
@@ -1258,14 +1437,22 @@ export default function App() {
         sources: searchSources.length > 0 ? searchSources : undefined,
         webQuery,
         webLookup,
+        ...finalTelemetry,
       };
 
       const finalHistory = [...nextHistory, aiMsg];
       setMessages(finalHistory);
       syncSessionMessages(finalHistory, currentChatId);
+      if (uiSettings.canvasMode) {
+        const detectedArtifact = extractLatestCanvasArtifact(accumulatedText);
+        if (detectedArtifact && detectedArtifact.code.length > 120) {
+          setCanvasArtifact(detectedArtifact);
+        }
+      }
     } catch (err: any) {
       if (isUserAbortedRef.current || err?.name === 'AbortError') {
         const partial = accumulatedText.trim();
+        const stoppedTelemetry = buildFinalTelemetry();
         const stoppedMsg: ChatMessage = {
           id: `ai-${Date.now()}`,
           role: 'model',
@@ -1277,6 +1464,8 @@ export default function App() {
           sources: searchSources.length > 0 ? searchSources : undefined,
           webQuery,
           webLookup,
+          ...stoppedTelemetry,
+          tokensEstimated: true,
         };
         const finalHistory = [...nextHistory, stoppedMsg];
         setMessages(finalHistory);
@@ -1295,6 +1484,10 @@ export default function App() {
       setMessages(finalHistory);
       syncSessionMessages(finalHistory, currentChatId);
     } finally {
+      if (telemetryTimer) {
+        clearInterval(telemetryTimer);
+        telemetryTimer = null;
+      }
       if (timeoutTimer) {
         clearTimeout(timeoutTimer);
         timeoutTimer = null;
@@ -1304,6 +1497,7 @@ export default function App() {
       setActiveStreamingThought('');
       setIsThinkingActive(false);
       setActiveThinkingMeta('');
+      setLiveTelemetry(null);
       setStatusBanner(null);
       setFallbackNotice(null);
       abortControllerRef.current = null;
@@ -1652,8 +1846,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Chat Canvas */}
-      <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-6">
+      {/* Main Split Workspace: Chat on Left, Interactive Canvas on Right */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          {/* Main Chat Canvas */}
+          <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.length === 0 && !isLoading ? (
             <div className="py-16 text-center space-y-4">
@@ -1862,6 +2059,7 @@ export default function App() {
                           content={msg.text}
                           textSizeLevel={uiSettings.textSizeLevel}
                           sources={msg.sources}
+                          onOpenCanvas={setCanvasArtifact}
                         />
                       </div>
                     )}
@@ -1982,6 +2180,48 @@ export default function App() {
                         </button>
                       )}
                     </div>
+
+                    {!isUser &&
+                      (msg.ttfsMs !== undefined ||
+                        msg.inputTokens !== undefined ||
+                        msg.outputTokens !== undefined ||
+                        msg.elapsedMs !== undefined) && (
+                        <div className="mt-2 pt-1.5 border-t border-zinc-800/50 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-mono text-zinc-500">
+                          {msg.ttfsMs !== undefined && (
+                            <span>TTFS {formatTtfsShort(msg.ttfsMs)}</span>
+                          )}
+                          {msg.inputTokens !== undefined && (
+                            <>
+                              {msg.ttfsMs !== undefined && <span className="text-zinc-700">·</span>}
+                              <span>
+                                In {msg.tokensEstimated ? '~' : ''}
+                                {msg.inputTokens.toLocaleString()}
+                              </span>
+                            </>
+                          )}
+                          {msg.outputTokens !== undefined && (
+                            <>
+                              <span className="text-zinc-700">·</span>
+                              <span
+                                title={
+                                  msg.thoughtsTokens !== undefined
+                                    ? `Includes ${msg.tokensEstimated ? '~' : ''}${msg.thoughtsTokens.toLocaleString()} thinking tokens`
+                                    : undefined
+                                }
+                              >
+                                Out {msg.tokensEstimated ? '~' : ''}
+                                {msg.outputTokens.toLocaleString()}
+                              </span>
+                            </>
+                          )}
+                          {msg.elapsedMs !== undefined && (
+                            <>
+                              <span className="text-zinc-700">·</span>
+                              <span>{formatDurationShort(msg.elapsedMs)}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
               );
@@ -2026,6 +2266,7 @@ export default function App() {
                   <MarkdownRenderer
                     content={activeStreamingText}
                     textSizeLevel={uiSettings.textSizeLevel}
+                    onOpenCanvas={setCanvasArtifact}
                   />
                 ) : (
                   !activeStreamingThought && (
@@ -2034,6 +2275,23 @@ export default function App() {
                       <span>Waiting for first token...</span>
                     </div>
                   )
+                )}
+
+                {liveTelemetry && (
+                  <div className="mt-3 pt-2 border-t border-zinc-800/50 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-mono text-zinc-500">
+                    <span>
+                      TTFS{' '}
+                      {liveTelemetry.ttfsMs !== undefined
+                        ? formatTtfsShort(liveTelemetry.ttfsMs)
+                        : '…'}
+                    </span>
+                    <span className="text-zinc-700">·</span>
+                    <span>In ~{liveTelemetry.inputTokens.toLocaleString()}</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>Out ~{liveTelemetry.outputTokens.toLocaleString()}</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>{formatDurationShort(liveTelemetry.elapsedMs)}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -2062,6 +2320,23 @@ export default function App() {
               >
                 <Radio className="w-3 h-3" />
                 <span>Stream: {uiSettings.streaming ? 'ON' : 'OFF'}</span>
+              </button>
+
+              {/* Canvas / 3D Mode Toggle */}
+              <button
+                type="button"
+                onClick={() =>
+                  setUiSettings((prev) => ({ ...prev, canvasMode: !prev.canvasMode }))
+                }
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-medium cursor-pointer transition-colors shrink-0 whitespace-nowrap ${
+                  uiSettings.canvasMode
+                    ? 'bg-cyan-950/70 border-cyan-500/60 text-cyan-200'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="Instructs the model to output standalone Three.js / HTML Canvas apps"
+              >
+                <Layers className="w-3 h-3" />
+                <span>Canvas: {uiSettings.canvasMode ? 'ON' : 'OFF'}</span>
               </button>
 
               {/* Universal Thinking Level Selector */}
@@ -2305,6 +2580,26 @@ export default function App() {
           </div>
         </div>
       </footer>
+        </div>
+
+        {canvasArtifact && (
+          <CanvasPanel
+            code={canvasArtifact.code}
+            language={canvasArtifact.language}
+            accentColor={uiSettings.accentColor}
+            onClose={() => setCanvasArtifact(null)}
+            onChangeCode={(newCode) =>
+              setCanvasArtifact((prev) => (prev ? { ...prev, code: newCode } : null))
+            }
+            onFixError={(errorText, _currentCode) => {
+              if (isLoading) return;
+              sendMessage(
+                `The Canvas preview threw this runtime error:\n\`\`\`\n${errorText}\n\`\`\`\n\nPlease fix the issue and output the complete updated \`\`\`${canvasArtifact.language} code block.`
+              );
+            }}
+          />
+        )}
+      </div>
 
       {/* Drawers & Modals */}
       <ChatHistoryDrawer

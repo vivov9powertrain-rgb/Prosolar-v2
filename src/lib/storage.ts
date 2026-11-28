@@ -96,6 +96,7 @@ export const DEFAULT_UI_SETTINGS: UiSettings = {
   maxTokens: 8192,
   streaming: true,
   textSizeLevel: 1,
+  canvasMode: false,
   searchEngine: 'exa',
   tavily: DEFAULT_TAVILY_CONFIG,
   exa: DEFAULT_EXA_CONFIG,
@@ -249,6 +250,7 @@ export function loadUiSettings(): UiSettings {
     ...(saved && typeof saved === 'object' ? saved : {}),
     historyLimit,
     maxTokens,
+    canvasMode: Boolean(saved?.canvasMode),
     searchEngine,
     tavily: {
       ...DEFAULT_TAVILY_CONFIG,
