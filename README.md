@@ -8,7 +8,7 @@
 ![Deployed](https://img.shields.io/badge/Render-Deployed-blue.svg)   
 
 # Prosolar-v2 — Minimalist Stateless Multi-Provider AI Chat
-
+<img width="816" height="1056" alt="Solara — Multi-Provider AI Chat" src="https://github.com/user-attachments/assets/fd4b0080-ec44-42c6-94bf-deea5d9b7bd3" />
 <img width="1857" height="955" alt="IMG_20261127_192252_500_2391255795762900878" src="https://github.com/user-attachments/assets/479d3e03-9fcb-4aa1-b8be-35c4aed868e9" />
 
 try for yourself at (https://prosolar-v2.onrender.com/) 
