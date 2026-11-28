@@ -1,0 +1,450 @@
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Open Source](https://img.shields.io/badge/Open%20Source-Yes-green.svg)
+
+![BYOK](https://img.shields.io/badge/BYOK-Supported-purple.svg)
+![Secure](https://img.shields.io/badge/Secure-Yes-green.svg)
+
+![Storage](https://img.shields.io/badge/Storage-Local-orange.svg)
+![Deployed](https://img.shields.io/badge/Render-Deployed-blue.svg)   
+
+# Prosolar-v2 — Minimalist Stateless Multi-Provider AI Chat
+
+<img width="1857" height="955" alt="IMG_20261127_192252_500_2391255795762900878" src="https://github.com/user-attachments/assets/479d3e03-9fcb-4aa1-b8be-35c4aed868e9" />
+
+try for yourself at (https://prosolar-v2.onrender.com/) 
+
+note :its byok so u need ur own api keys , get a free one 
+
+refer to (https://free-llm.com/free-api)
+
+prosolar is a stateless, full-stack multi-provider AI chat platform engineered with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and an **Express** proxy server (`server.ts`). 
+
+Prosolar requires **zero databases, zero server-side user tracking, and zero cloud storage accounts**. All personal configurations—API keys, custom endpoints, drag-and-drop model cascades, learned model reasoning capabilities, system prompts, theme styles, and session histories—are stored strictly within your browser's `localStorage`. (code is right here to check ✔️. 
+
+the current password is "password" 
+
+host it yourself on render.com  ( choose webservice) 
+
+use copy Public repo ( https://github.com/vivov9powertrain-rgb/Prosolar-v2.git )
+
+ npm install --legacy-peer-deps && npm run build
+ 
+ npm run start
+ 
+ NODE_ENV = production
+
+<img width="1857" height="955" alt="IMG_20261127_192413_766_6555871900740437391" src="https://github.com/user-attachments/assets/1519b148-4fea-404e-a9b5-ad181922ffe6" />
+<img width="1857" height="955" alt="IMG_20261127_192558_625_4314468277565324676" src="https://github.com/user-attachments/assets/d0134de8-e920-4960-8709-67b73eedff54" />
+<img width="1857" height="955" alt="IMG_20261127_192344_377_1188265854381900770" src="https://github.com/user-attachments/assets/26d3bb09-cecf-4447-a2e4-3d48bb77479f" />
+<img width="1857" height="955" alt="IMG_20261127_192704_466_603351729919068773" src="https://github.com/user-attachments/assets/6eb86051-2a83-4357-9af1-e193ba6e3f8b" />
+<img width="1857" height="955" alt="IMG_20261127_192736_726_125349621984739548" src="https://github.com/user-attachments/assets/c17dd58e-b0e7-483a-acca-572fa1671660" />
+
+---
+
+## Table of Contents
+
+1. [Architecture & Design Principles](#architecture--design-principles)
+2. [Security & Access Control (Password Gate)](#security--access-control-password-gate)
+3. [Multi-Provider Engine & Model Cascades](#multi-provider-engine--model-cascades)
+4. [Audio-Only YouTube Understanding (Gemini)](#audio-only-youtube-understanding-gemini)
+5. [Unified Thinking & Reasoning Engine](#unified-thinking--reasoning-engine)
+6. [Interactive Markdown, KaTeX & Code Execution](#interactive-markdown-katex--code-execution)
+7. [Multimodal Files & 25 MB Upload Pipeline](#multimodal-files--25-mb-upload-pipeline)
+8. [Web Search (Exa AI MCP & Tavily) & Native Gemini URL Context](#web-search-exa-ai-mcp--tavily--native-gemini-url-context)
+9. [Long-Stream Resilience & Overlap Resume Protocol](#long-stream-resilience--overlap-resume-protocol)
+10. [Text-to-Speech (Web Speech API)](#text-to-speech-web-speech-api)
+11. [Client-Side State & Storage Schema](#client-side-state--storage-schema)
+12. [Backend API Reference](#backend-api-reference)
+13. [Getting Started & Local Development](#getting-started--local-development)
+14. [Deployment](#deployment)
+
+---
+
+## Architecture & Design Principles
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Client Browser (React 19)                       │
+│  - 100% LocalStorage State (Keys, Cascades, History, Appearance)       │
+│  - Marked + KaTeX + OneCompiler Runner Modal + Audio Synthesizer       │
+│  - Overlapping SSE Consumer with Auto-Reconnection & Sequence Tracking │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                         HTTP / SSE / Multipart
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                  Stateless Express Proxy (server.ts)                   │
+│  - prosolar Cookie Gate (prosolar_key HttpOnly authentication)           │
+│  - Text-Only Catalog Filtering & Dynamic Capability Inspection         │
+│  - Self-Healing Parameter Retries & Instant Error-Based Failover       │
+│  - Long-Lived Stream Job Registry & Seamless Handoff at 250s           │
+│  - Native YouTube Audio Layer & URL Context Grounding                  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+        ┌──────────────┬────────────┼─────────────┬─────────────┐
+        ▼              ▼            ▼             ▼             ▼
+  Gemini Studio       Groq      OpenRouter    NVIDIA NIM      Z.AI & Custom
+  (@google/genai)   (OpenAI)     (OpenAI)      (OpenAI)     (OpenAI Slots)
+```
+
+- **Stateless Server Architecture**: The backend acts as a high-performance proxy and stream coordinator. It never logs prompts, never saves conversations, and requires no external database.
+- **Client Sovereignty**: Your credentials, keys, preferences, and conversations never leave your device except as direct, transit-encrypted headers sent to the respective AI provider.
+- **Fail-Soft Self-Healing**: Upstream API changes, unrecognized parameters, and experimental flags are automatically caught, repaired, or stripped on the fly.
+- **Zero Lock-In**: Complete cascade configurations can be exported to and imported from portable JSON files at any time.
+
+---
+
+## Security & Access Control (Password Gate)
+
+Prosolar includes an integrated **Password Gate** at the network middleware layer to safeguard instances deployed to public URLs or container runtimes:
+
+- **Cookie-Based Session**: Successful authentication injects a secure, 7-day `prosolar_key` `HttpOnly` cookie with `SameSite=None; Secure; Partitioned` attributes (on HTTPS) or `SameSite=Lax` (on HTTP).
+- **API Guarding**: Any `/api/*` request without a valid cookie instantly returns HTTP `401 Unauthorized` with `{ "requiresPassword": true }`.
+- **Minimal Standalone Unlock UI**: Visitors without the cookie receive an inlined, lightweight authentication prompt with zero external asset dependencies.
+- **Password Rotation**: Configurable directly in `server.ts` (`PW` and matching `KEY`).
+
+---
+
+## Multi-Provider Engine & Model Cascades
+
+### Supported Providers
+
+| Provider | Default Base URL | Wire Protocol | Distinctive Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Gemini AI Studio** | `https://generativelanguage.googleapis.com` | `@google/genai` (v1beta) | Native multimodal inputs, YouTube audio layers, URL context grounding, thinking level control, auto-fallback to `/v1beta/openai` |
+| **Groq** | `https://api.groq.com/openai/v1` | OpenAI Compatible | Ultra-low latency inference, LPU hardware acceleration, `max_completion_tokens` handling |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | OpenAI Compatible | Public catalog browsing without an API key, Cloudflare AI PDF parsing plugin, extensive open-source reasoning models |
+| **NVIDIA NIM** | `https://integrate.api.nvidia.com/v1` | OpenAI Compatible | Public catalog discovery, high-throughput enterprise inference, adaptive `chat_template_kwargs` / `reasoning_effort` |
+| **Z.AI** | `https://api.z.ai/api/paas/v4` | OpenAI Compatible | High-performance GLM models with custom thinking configurations |
+| **Custom #1 & #2** | User-defined HTTPS URL | OpenAI Compatible | Fully configurable slots for self-hosted gateways (e.g., vLLM, Ollama, LM Studio, LiteLLM) or services like Arena (`https://api.arena.ai/v1`) |
+
+### Drag-Reorderable Cascades
+
+Each provider features an independent model cascade managed in `CascadeEditor.tsx`:
+- **Drag-and-Drop Reordering**: Powered by `motion/react` `Reorder.Group` for smooth visual rearrangement.
+- **Top / End Insertion**: Add models directly to the top (priority) or bottom (fallback) of your list.
+- **Live Catalog Discovery**: Search thousands of upstream models with real-time text-output filtering.
+- **JSON Import / Export**: Back up and restore your exact cascades across browsers with animated celebration feedback.
+
+### Strict Two-Tier Error Triage & Failover
+
+When Prosolar executes a prompt, it applies intelligent error categorization:
+
+1. **Immediate Failover (Zero Retries Wasted)**:
+   - Triggered on: HTTP `401` (Unauthorized), `402` (Payment Required), `403` (Forbidden), `404` (Model Not Found), `429` (Rate Limited), `5xx` (Upstream Outage), quota exhaustion, or empty completion responses.
+   - Action: Prosolar instantly emits a `fallback_notice` SSE event and transfers execution to the next model in the cascade with 0ms delay.
+2. **Self-Healing In-Place Retries (HTTP 400 / 422)**:
+   - Triggered on parameter rejections: unsupported `thinkingConfig`, disallowed `systemInstruction`, rejected tools, unrecognized `reasoning_effort`, or temperature conflicts.
+   - Action: Prosolar automatically adjusts the parameters (e.g., stripping the thinking configuration, folding the system prompt into a user message, or stepping down video layers) and retries on the **same model** before attempting cascade failover.
+
+---
+
+## Audio-Only YouTube Understanding (Gemini)
+
+Prosolar includes specialized, cost-effective YouTube audio comprehension for Gemini models:
+
+- **Audio Layer Isolation (`contentLayers: ['AUDIO']`)**:
+  When a YouTube URL is provided in the prompt, Prosolar attaches the video part using `{ fileData: { fileUri }, videoMetadata: { contentLayers: ['AUDIO'] } }`.
+- **Token Efficiency**:
+  Extracting only the audio track consumes **~19,200 tokens** for a 10-minute video, compared to **~180,000 tokens** when sampling full video frames. This allows long videos to process comfortably within Free Tier Rate Limits (TPM).
+- **Supported URL Formats**:
+  Detects standard video links (`youtube.com/watch?v=...`), shortlinks (`youtu.be/...`), YouTube Shorts (`youtube.com/shorts/...`), and Live broadcasts (`youtube.com/live/...`).
+- **Conflict Prevention**:
+  YouTube URLs are automatically excluded from Google's `urlContext` grounding tool to prevent 400 parameter errors (since `urlContext` does not process YouTube media).
+- **Latest-Turn Only**:
+  Attachments are injected strictly for the latest user message, preventing prior turns from repeatedly consuming video quotas on follow-up questions.
+- **Multi-Stage Self-Healing**:
+  If a model or region rejects the audio content layer, Prosolar automatically steps down through `audio` → `low_res` → `plain` → `none` before failing over.
+
+---
+
+## Unified Thinking & Reasoning Engine
+
+Prosolar features a unified client and server reasoning adapter (`src/lib/reasoning.ts`) supporting 9 distinct modes:
+
+```
+Default ──► None ──► Minimal ──► Low ──► Medium ──► High ──► XHigh ──► Max ──► On
+```
+
+### Protocol Translations
+
+| Provider / Model Family | Wire Protocol Translation |
+| :--- | :--- |
+| **Gemini 3.x / 4.x / 5.x+** | Maps to `thinkingConfig.thinkingLevel` (`MINIMAL`, `LOW`, `MEDIUM`, `HIGH`, `XHIGH`). |
+| **OpenAI / Groq / OpenRouter** | Maps to `reasoning_effort` (`low`, `medium`, `high`) or `max_completion_tokens`. |
+| **DeepSeek (OpenRouter / Groq)** | Maps to `include_reasoning: true` or `chat_template_kwargs: { reasoning_effort: ... }`. |
+| **NVIDIA NIM** | Dynamically adapts between `chat_template_kwargs` and native parameters based on model family. |
+| **Z.AI (GLM)** | Translates to Z.AI custom thinking tokens and parameters. |
+
+### Runtime Capability Learning
+
+When a model successfully responds after a parameter adjustment (such as down-stepping thinking levels or folding system instructions), Prosolar emits a `learned_capability` SSE event. This learned behavior is stored in the browser's `model_capabilities` cache, ensuring subsequent requests execute with optimal configurations on the first attempt.
+
+---
+
+## Interactive Markdown, KaTeX & Code Execution
+
+Rendered via `MarkdownRenderer.tsx` with high performance and zero external web fonts:
+
+### Advanced KaTeX & Chemical Equations
+
+- **Display & Inline Math**: Supports `$$...$$`, `\[...\]`, `\(...\)`, `$...$`, and fenced ````math` / ````latex` blocks.
+- **Standard LaTeX Environments**: Accurately renders `align`, `matrix`, `pmatrix`, `bmatrix`, `vmatrix`, `cases`, `equation`, `split`, `eqnarray`, and `array`.
+- **Chemistry (`mhchem`)**: Native chemical formula rendering via `\ce{...}` and physical units via `\pu{...}`.
+- **Auto-Healing Parser**: Automatically recovers unclosed braces, repairs undefined control sequences (e.g., `\Take` → `\text{Take}`), auto-closes streaming unclosed `$$` delimiters, and separates formulas concatenated into English prose.
+- **Reasoning Blocks**: Formats `<think>...</think>` tags into collapsible, DeepSeek-style reasoning callouts with animated pulsing indicators during active streaming.
+
+### Code Block Actions
+
+Every rendered code block features a dedicated header toolbar:
+
+1. **Language Badge**: Displays the detected syntax tag.
+2. **Download Code Button**:
+   - Maps over 35 language identifiers (`python`, `typescript`, `tsx`, `javascript`, `jsx`, `html`, `css`, `sql`, `bash`, `rust`, `go`, `cpp`, `dockerfile`, etc.) to accurate file extensions.
+   - Uses mobile-safe `Blob` downloads with automatic object URL revocation.
+   - Provides temporary `Saved` checkmark feedback.
+3. **On-Demand Code Execution (OneCompiler Embed)**:
+   - Available on 25+ runnable languages (`python`, `javascript`/`nodejs`, `typescript`, `react`, `html`, `c`, `cpp`, `java`, `csharp`, `go`, `rust`, `php`, `ruby`, `kotlin`, `swift`, `dart`, `bash`, `sqlite`, `mysql`, `postgresql`, `r`, `lua`, `perl`, `scala`, `haskell`, `elixir`, `julia`, `zig`).
+   - Automatically differentiates browser JavaScript from Node.js (detects `require`, `module.exports`, `process.`, `'fs'`).
+   - **Lazy-Mounted Modal**: Loads zero iframe resources until clicked, completely freeing system memory when closed.
+   - **Two-Way Synchronization**: Automatically injects code using OneCompiler's `populateCode` postMessage protocol, schedules retries at 400ms and 900ms, and automatically issues `triggerRun`. Includes manual **Re-sync Code**, **Copy**, and **Close** controls.
+4. **Local JSON Integrity Check**:
+   - Fenced `json` and `jsonc` blocks render a fast **Check** button.
+   - Evaluates `JSON.parse()` locally in 0ms, displaying key/item counts or exact line/character syntax error details in an inline pill.
+5. **Copy Button**: Instant clipboard copy with confirmation state.
+
+---
+
+## Multimodal Files & 25 MB Upload Pipeline
+
+Prosolar supports comprehensive multimodal input attachments:
+
+- **Generous Limits**: Upload up to 12 files per message, up to **25 MB** each.
+- **Flexible Ingestion**: Paste images from your clipboard, drag and drop files onto the chat interface, or use the file picker.
+- **Automatic Storage Optimization**: To prevent browser `QUOTA_EXCEEDED_ERR` errors in `localStorage`, heavy binary attachments are retained during active session streaming but cleanly stripped when persisting session records.
+- **Format Support**:
+  - **Images**: PNG, JPEG, WEBP, GIF, SVG (sent as inline data or multimodal image parts).
+  - **Text & Source Code**: Source code files, CSV, TSV, Markdown, JSON, YAML, XML, and logs are cleanly decoded and formatted into syntax-highlighted code fences.
+  - **PDF Documents**: Routed through OpenRouter's Cloudflare AI file-parser plugin or provided natively to Gemini multimodal endpoints.
+  - **ZIP Archives**: Automatically decompressed client-side via `JSZip` (`zipExtract.ts`), extracting nested files directly into the conversation.
+
+---
+
+## Web Search (Exa AI MCP & Tavily) & Native Gemini URL Context
+
+Prosolar features a unified pre-search engine supporting two interchangeable search providers—**Exa AI MCP** and **Tavily**—with a one-click engine switcher right in the composer toolbar and zero external tool-calling loops.
+
+### Supported Search Engines
+
+| Engine | Protocol & Endpoint | API Key Requirement | Key Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Exa AI MCP** | Model Context Protocol (`StreamableHTTPClientTransport`) via `https://mcp.exa.ai/mcp?tools=web_search_exa` | **Keyless by Default** (Optional custom key supported) | Semantic neural search, live webpage crawl (`livecrawl: fallback/preferred`), search types (`auto`, `fast`, `deep`), up to 20 results, cloud-safe IPv4 routing |
+| **Tavily** | Direct HTTPS REST API via `https://api.tavily.com/search` | Required (`tvly-...`) | Trusted / blocked domain lists, search depths (`basic`, `advanced`, `fast`, `ultra-fast`), up to 10 results |
+
+### Search Execution Strategies (Avoiding Double Model Usage)
+
+You can configure search behavior per engine to optimize latency and token costs:
+
+#### 1. "Always search (auto-fire)" (`strategy: 'always'`) — Single AI API Call
+- **How it works**: Prosolar takes your input prompt and immediately queries the selected search engine (**Exa AI MCP** or **Tavily**) *before* contacting the AI model.
+- **Single AI API Request**: Search results are collected, formatted into a clean grounding block (`[Web Search Results for "..." — cite inline as [1], [2] when used]`), and appended to the user message. Prosolar then makes **only a single request** to your AI model provider (`POST /api/chat/stream`).
+- **Cost & Latency Benefit**: This completely avoids sending a preliminary "Should I search?" prompt to the LLM. There is **zero double model calling** and **zero extra LLM token usage**.
+
+#### 2. "Let the model decide" (`strategy: 'model'`) — Conditional AI Intent Check
+- **How it works**: When you submit a prompt, Prosolar first sends a tiny, non-streaming query-planning request to your active model (`POST /api/chat` with `thinkingLevel: 'none'`, `maxTokens: 500`) asking for strict JSON:
+  ```json
+  {"search": false}  // OR
+  {"search": true, "query": "short standalone search query"}
+  ```
+- **If the model replies `{"search": false}`**: Prosolar skips web search completely and proceeds straight to answering the user prompt (1 model request total).
+- **If the model replies `{"search": true, "query": "..."}`**: Prosolar searches Exa or Tavily using the model's refined query, attaches the search excerpts, and then sends the full prompt to the model (2 model requests total).
+- **Custom Instructions**: Both engines allow custom search instructions (e.g. *"Only search for recent documentation or benchmarks"*) passed to guide the model's decision.
+
+### Configurable Max Results & Token Budgeting
+
+Both search engines enforce user-defined limits in the **Settings > Web Search** panel:
+- **Max Search Results**:
+  - Exa AI MCP: Configurable from **1 to 20** results (default: `5`).
+  - Tavily: Configurable from **1 to 10** results (default: `4`).
+- **Max Search Context Tokens (`300`–`25,000` tokens, default: `3000`)**:
+  - Translates to a hard total character budget of approximately `maxTokens * 4` characters (e.g. `3,000 tokens ≈ 12,000 characters`).
+  - Enforced dynamically using a **water-filling distribution algorithm** (`server.ts`): shorter snippets keep their full text without truncation, while any excess budget is fairly distributed across longer results so critical excerpts are never prematurely clipped.
+- **Calls per Conversation Cap (`1`–`25`, default: `5`)**: Prevents runaway API usage in prolonged chat sessions.
+
+### Exa AI MCP Architecture & Cloud Compatibility
+
+- **Keyless Capability**: By default, Exa AI MCP operates keylessly through the official `web_search_exa` MCP tool. Users can optionally provide their own Exa API key in Settings if desired.
+- **IPv4 Connection Forcing**: Many cloud container environments (including Cloud Run and various hosting providers) route outbound traffic over IPv6 subnets, which Exa's keyless tier rejects with HTTP 403. Prosolar's Express proxy automatically routes Exa MCP connections through an `undici` `Agent({ connect: { family: 4 } })` dispatcher, guaranteeing reliable IPv4 resolution on all hosts.
+- **One-Click Composer Switcher**: A segmented control (`Exa MCP` / `Tavily`) is positioned right next to the `Web Search` toggle in the composer bar, letting you switch between engines in a single click without opening the Settings modal.
+
+### Native Gemini URL Context
+
+When interacting with Gemini models:
+- If a user prompt contains a public HTTP/HTTPS link, Prosolar automatically attaches `{ tools: [{ urlContext: {} }] }` to allow Gemini to inspect the webpage directly.
+- Private addresses (`localhost`, `127.0.0.1`, RFC 1918 subnets, `.local`, `.internal`) and YouTube URLs are automatically filtered out (YouTube is routed through Prosolar's audio-only multimodal pipeline instead).
+- If a model rejects the tool parameter, Prosolar automatically strips the tool and retries in the same execution leg.
+
+---
+
+## Long-Stream Resilience & Overlap Resume Protocol
+
+To prevent Cloud Run, reverse proxy, or mobile network disconnects from severing long-running reasoning sessions, Prosolar implements an **Overlapping SSE Resumption Protocol**:
+
+```
+Leg 1 (0s - 250s)   ═══════════════════════════════════════► [Handoff Event] ──► (Closed at 280s)
+                                                                 │
+                                                       (Overlapped Resume)
+                                                                 ▼
+Leg 2 (250s - 500s)                                    ═══════════════════════════► (Active...)
+```
+
+- **Global Adaptive Timeouts**:
+  - **Initial / Idle Timeout (`600,000 ms` / 10 min)**: Time allowed before the model emits its first token.
+  - **Active Stream Promotion (`1,200,000 ms` / 20 min)**: The deadline automatically promotes to 20 minutes as soon as the first thought or text token arrives.
+- **Seamless Cloud Run Handoff**:
+  - At 250s (`HANDOFF_LEG_MS`), `server.ts` emits a `handoff` event with the current `jobId` and `afterSeq`.
+  - The client opens a secondary SSE stream to `/api/chat/resume?jobId=...&afterSeq=...` **before** the old connection terminates.
+  - Buffered tokens are replayed with zero character loss, and the upstream LLM connection continues generating without interruption.
+- **True Instant Abort**:
+  - Pressing the **Stop** button triggers `POST /api/chat/abort`, immediately aborting the upstream HTTP connection via `AbortController` to prevent unnecessary token consumption.
+
+---
+
+## Text-to-Speech (Web Speech API)
+
+Prosolar includes an in-browser voice reader designed for technical content:
+
+- **Audio Sanitization (`speechSanitizer.ts`)**: Cleans LaTeX mathematical equations, markdown table formatting, code fences, and symbols into natural, readable English prose.
+- **Sentence Chunking**: Splits responses into natural conversational phrases to prevent browser audio buffer timeouts on long answers.
+- **Interactive Controls**: Per-message Play, Pause, Resume, and Stop controls with real-time audio progress indicators.
+
+---
+
+## Client-Side State & Storage Schema
+
+All application state is saved under organized keys in browser `localStorage`:
+
+| Storage Key | Data Structure | Purpose |
+| :--- | :--- | :--- |
+| `prosolar_api_keys` | `Record<ProviderId | 'tavily' | 'exa', string>` | Stored API credentials for providers, Tavily, and optional Exa key. |
+| `prosolar_custom_providers`| `Record<'custom1' \| 'custom2', CustomProviderSlot>` | Custom OpenAI-compatible endpoints and credentials. |
+| `prosolar_cascades` | `Record<ProviderId, string[]>` | Ordered fallback model arrays for each provider. |
+| `prosolar_thinking_levels`| `Record<ProviderId, Mode>` | Reasoning depth preferences (`default`, `high`, etc.). |
+| `prosolar_capabilities` | `Record<ProviderId, Record<string, ModelCapability>>` | Cached provider metadata and runtime-learned capabilities. |
+| `prosolar_system_prompt` | `string` | Global system instructions applied across conversations. |
+| `prosolar_ui_settings` | `UiSettings` | Theme settings, text scale, max tokens, history depth, active `searchEngine`, Tavily & Exa configs. |
+| `prosolar_chat_history` | `ChatSession[]` (Max 10) | Recent chat sessions, message histories, and source citations. |
+| `prosolar_active_chat_id` | `string` | ID of the currently selected conversation. |
+
+---
+
+## Backend API Reference
+
+### Proxy & Chat Endpoints
+
+- `GET /api/health`
+  Returns server status, stateless configuration, and timeout limits.
+- `POST /api/unlock`
+  Validates instance access password and issues the `prosolar_key` session cookie.
+- `POST /api/models`
+  Queries provider catalogs, applies text-only filtering, and extracts capability metadata.
+- `POST /api/chat/stream`
+  Executes cascade streaming completions over SSE. Accepts either `application/json` or `multipart/form-data`.
+- `GET /api/chat/resume`
+  Resumes an in-flight streaming job after a network handoff without token loss.
+- `POST /api/chat/abort`
+  Cancels upstream model generation for a specific `requestId`.
+- `POST /api/upload`
+  Parses binary files up to 25 MB into base64 payload attachments.
+- `POST /api/search`
+  Stateless proxy executing Tavily web searches with domain filtering and token character budgeting.
+- `POST /api/search/exa`
+  Stateless MCP client proxy executing Exa AI MCP web searches via `web_search_exa` with IPv4 routing and token character budgeting.
+
+### Server-Sent Event (SSE) Protocol
+
+| Event | Payload | Description |
+| :--- | :--- | :--- |
+| `model_init` | `{ model: string }` | Identifies the active model chosen from the cascade. |
+| `thinking` | `{}` | Emitted when reasoning/thought generation begins. |
+| `thought` | `{ text: string }` | Incremental reasoning stream delta. |
+| `chunk` | `{ text: string }` | Incremental assistant response delta. |
+| `fallback_notice`| `{ failedModel: string, nextModel: string, reason: string }` | Notifies that a model failed and execution transitioned to the next fallback. |
+| `learned_capability` | `{ model: string, capability: ModelCapability }` | Emits newly discovered parameter adaptations. |
+| `model_meta` | `{ model: string, appliedSummary: string, retried: boolean }` | Summarizes applied thinking and retry metrics. |
+| `handoff` | `{ jobId: string, afterSeq: number }` | Signals client to initiate an overlapping connection before connection closure. |
+| `done` | `{ modelUsed: string }` | Confirms full completion of the response stream. |
+| `error` | `{ error: string }` | Emitted when all models in the cascade fail. |
+
+---
+
+## Getting Started & Local Development
+
+### Prerequisites
+
+- **Node.js**: Version 20.x or 22.x (recommended)
+- **Package Manager**: `npm`
+
+### Installation
+
+```bash
+git clone <repository-url>
+cd prosolar
+npm install
+```
+
+### Environment Configuration (Optional)
+
+Create a `.env` file in the root directory for optional defaults:
+
+```env
+# Optional fallback Gemini API key
+GEMINI_API_KEY="your-gemini-key"
+
+# Optional public application URL (used for OpenRouter HTTP-Referer headers)
+APP_URL="https://your-domain.com"
+
+# Optional custom handoff timings for Cloud Run proxies (defaults: 250000 and 280000)
+HANDOFF_LEG_MS=250000
+LEG_HARD_CAP_MS=280000
+```
+
+*Note: All API keys and settings can be entered directly in the browser UI via Settings and stored in `localStorage`.*
+
+### Development Server
+
+Starts the Vite development server with Express backend middleware on port 3000:
+
+```bash
+npm run dev
+```
+
+### Code Validation & Production Build
+
+```bash
+# Typecheck application without emitting files
+npm run lint
+
+# Compile client bundle and build assets
+npm run build
+```
+
+---
+
+## Deployment
+
+### Production Execution
+
+To run the production build using the compiled assets and Express server:
+
+```bash
+npm run build
+npm start
+```
+
+### Container & Cloud Run Deployment
+
+Prosolar is optimized for containerized environments (such as Google Cloud Run, AWS App Runner, or Docker):
+- The Express server serves both the API endpoints and pre-compiled client assets in `dist/`.
+- The connection handoff protocol automatically accommodates Cloud Run's 300-second maximum request timeout.
+- The password gate prevents unauthorized public traffic from consuming your upstream API quotas.
